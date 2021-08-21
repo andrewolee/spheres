@@ -4,9 +4,9 @@
 
 precision highp float;
 
-#define REFLECTIONS 2
-#define MAX_STEPS 32
-#define MAX_DIST 4.0
+#define REFLECTIONS 3
+#define MAX_STEPS 32 
+#define MAX_DIST 5.0
 #define MIN_DIST 0.001
 
 uniform vec2 u_window;
@@ -17,23 +17,27 @@ float box(vec3 p, vec3 b) {
     return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
+float boxframe(vec3 p, vec3 b, float e) {
+    p = abs(p) - b;
+    vec3 q = abs(p + e) - e;
+    return min(min(
+        length(max(vec3(p.x, q.y, q.z), 0.0)) + min(max(p.x, max(q.y, q.z)), 0.0),
+        length(max(vec3(q.x, p.y, q.z), 0.0)) + min(max(q.x, max(p.y, q.z)), 0.0)),
+        length(max(vec3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
+}
+
 float sphere(vec3 p, vec3 c, float r) {
     return length(p - c) - r;
 }
 
-float smoothmin(float a, float b, float k) {
-    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
-    return mix(b, a, h) - k * h * (1.0 - h);
-}
-
 float map(vec3 p) {
-    float d = MAX_DIST;
     p = fract(p) - 0.5;
-    return sphere(p, vec3(0.0), 0.3);
+    //return boxframe(p, vec3(0.2), 0.02);
+    return sphere(p, vec3(0.0), 0.2);
 }
 
 vec3 normal(vec3 p) {
-    const vec2 e = vec2(0.0001, 0.0);
+    const vec2 e = vec2(MIN_DIST, 0.0);
 
     vec3 normal;
     normal.x = map(p + e.xyy) - map(p - e.xyy);
@@ -60,9 +64,8 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
     vec3 col = vec3(0.0);
     for (int i = 0; i < REFLECTIONS; i++) {
         float t = raymarch(ro, rd);
-        if (t == 0.0) {
-            break;
-        }
+        if (t == 0.0) break;
+
         vec3 p = ro + rd * t; // position
         vec3 sn = normal(p); // surface normal
         vec3 ld = normalize(lp - p); // light direction
@@ -73,7 +76,6 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
         float spec = 2.0 * pow(max(0.0, dot(reflect(-ld, sn), -rd)), 8.0);
         float fog = smoothstep(0.0, 0.95, t / MAX_DIST);
 
-
         c *= (dif + amb + spec) * pow(0.2, float(i));
         
         col += mix(c, vec3(0.0), fog);
@@ -81,13 +83,13 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
         rd = reflect(rd, sn);
         ro = p + rd * MIN_DIST;
     }
-    return clamp(col, 0.0, 0.8);
+    return clamp(col, 0.0, 1.0);
 }
 
 void main() {
     vec2 uv = (-u_window + 2.0 * gl_FragCoord.xy) / u_window.y;
 
-    vec3 rd = normalize(vec3(uv, 1.0));
+    vec3 rd = normalize(vec3(uv, 3.0));
     vec3 ro = vec3(0.0, 0.0, u_t);
     vec3 lp = ro + vec3(0, 1, -0.5);
 
