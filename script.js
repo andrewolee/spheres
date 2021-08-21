@@ -5,7 +5,6 @@ class WebGLCanvas {
     this.canvas = canvas;
     this.vsSource = vsSource;
     this.fsSource = fsSource;
-    this.SPHERES = 3;
 
     this.gl = canvas.getContext("webgl");
     if (!this.gl) {
@@ -56,19 +55,10 @@ class WebGLCanvas {
 
   initUniforms() {
     this.u_window = [];
-    this.u_pos = [];
-    this.vel = [];
-    this.mass = [];
-    for (let i = 0; i < this.SPHERES; i++) {
-      for (let j = 0; j < 3; j++) {
-        this.u_pos.push(Math.random() * 4 - 2);
-        this.vel.push(0);
-      }
-      this.mass.push(Math.random() * 2 + 1);
-   }
+    this.u_t = 0;
     this.uniforms = {
       u_window: this.gl.getUniformLocation(this.shaderProgram, "u_window"),
-      u_pos: this.gl.getUniformLocation(this.shaderProgram, "u_pos"),
+      u_t: this.gl.getUniformLocation(this.shaderProgram, "u_t"),
     };
   }
 
@@ -87,7 +77,7 @@ class WebGLCanvas {
 
   renderScene() {
     this.gl.uniform2fv(this.uniforms.u_window, this.u_window);
-    this.gl.uniform3fv(this.uniforms.u_pos, this.u_pos);
+    this.gl.uniform1f(this.uniforms.u_t, this.u_t);
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
@@ -103,22 +93,8 @@ class WebGLCanvas {
     window.addEventListener("resize", this.setWindowDim.bind(this));
   }
 
-  vec3add(u, v) {
-
-  }
-
   animate() {
-    for (let i = 0; i < this.SPHERES; i++) {
-      for (let j = 0; j < this.SPHERES; j++) {
-        if (i === j) continue;
-        for (let k = 0; k < 3; k++) {
-   //       this.vel[3 * i + k] += 0.000001 * this.mass[j] / (this.u_pos[3 * j + k] - this.u_pos[3 * i + k]);
-        }
-      }
-    }
-    for (let i = 0; i < this.SPHERES * 3; i++) {
-      this.u_pos[i] += this.vel[i];
-    }
+    this.u_t += 0.01;
     this.renderScene();
     window.requestAnimationFrame(this.animate.bind(this));
   }

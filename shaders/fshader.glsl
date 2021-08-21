@@ -1,16 +1,21 @@
 // https://www.shadertoy.com/view/4dt3zn
 // https://michaelwalczyk.com/blog-ray-marching.html
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-ray-tracing/implementing-the-raytracing-algorithm
 
 precision highp float;
 
-#define SPHERES 3
 #define REFLECTIONS 2
 #define MAX_STEPS 32
-#define MAX_DIST 1000.0
+#define MAX_DIST 4.0
 #define MIN_DIST 0.001
 
 uniform vec2 u_window;
-uniform vec3 u_pos[SPHERES];
+uniform float u_t;
+
+float box(vec3 p, vec3 b) {
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
 
 float sphere(vec3 p, vec3 c, float r) {
     return length(p - c) - r;
@@ -23,10 +28,8 @@ float smoothmin(float a, float b, float k) {
 
 float map(vec3 p) {
     float d = MAX_DIST;
-    for (int i = 0; i < SPHERES; i++) {
-        d = smoothmin(d, sphere(p, u_pos[i], 1.0), 0.5);
-    }
-    return d;
+    p = fract(p) - 0.5;
+    return sphere(p, vec3(0.0), 0.3);
 }
 
 vec3 normal(vec3 p) {
@@ -63,24 +66,35 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
         vec3 p = ro + rd * t; // position
         vec3 sn = normal(p); // surface normal
         vec3 ld = normalize(lp - p); // light direction
-        vec3 c = clamp(p, 0.2, 0.7); // color
+        vec3 c = sin(p);
 
         float amb = 0.2;
         float dif = max(0.0, dot(sn, ld));
-        float spec = pow(max(0.0, dot(reflect(-ld, sn), -rd)), 8.0);
+        float spec = 2.0 * pow(max(0.0, dot(reflect(-ld, sn), -rd)), 8.0);
+        float fog = smoothstep(0.0, 0.95, t / MAX_DIST);
+
+
+        c *= (dif + amb + spec) * pow(0.2, float(i));
         
-        col += (dif + amb + spec) * c * pow(0.8, float(i));
+        col += mix(c, vec3(0.0), fog);
+
+        rd = reflect(rd, sn);
+        ro = p + rd * MIN_DIST;
     }
-    return col;
+    return clamp(col, 0.0, 0.8);
 }
 
 void main() {
     vec2 uv = (-u_window + 2.0 * gl_FragCoord.xy) / u_window.y;
 
-    vec3 lp = vec3(2.0, 1.0, -2.0);
-
-    vec3 ro = vec3(0.0, 0.0, -5.0);
     vec3 rd = normalize(vec3(uv, 1.0));
+    vec3 ro = vec3(0.0, 0.0, u_t);
+    vec3 lp = ro + vec3(0, 1, -0.5);
+
+    float cs = cos(u_t * 0.25);
+    float si = sin(u_t * 0.25);
+    rd.xy = mat2(cs, si, -si, cs) * rd.xy;
+    rd.xz = mat2(cs, si, -si, cs) * rd.xz;
 
     vec3 col = render(ro, rd, lp);
 
