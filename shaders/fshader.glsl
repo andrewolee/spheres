@@ -6,7 +6,7 @@ precision highp float;
 
 #define REFLECTIONS 3
 #define MAX_STEPS 32 
-#define MAX_DIST 5.0
+#define MAX_DIST 8.0
 #define MIN_DIST 0.001
 
 uniform vec2 u_window;
@@ -27,6 +27,7 @@ float boxframe(vec3 p, vec3 b, float e) {
 }
 
 float sphere(vec3 p, vec3 c, float r) {
+    float d = sin(10.0 * p.x) * 0.1;
     return length(p - c) - r;
 }
 
@@ -69,7 +70,7 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
         vec3 p = ro + rd * t; // position
         vec3 sn = normal(p); // surface normal
         vec3 ld = normalize(lp - p); // light direction
-        vec3 c = sin(p);
+        vec3 c = sin(3.0 * p);
 
         float amb = 0.2;
         float dif = max(0.0, dot(sn, ld));
