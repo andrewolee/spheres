@@ -70,7 +70,7 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
         vec3 p = ro + rd * t; // position
         vec3 sn = normal(p); // surface normal
         vec3 ld = normalize(lp - p); // light direction
-        vec3 c = sin(3.0 * p);
+        vec3 c = 0.5 * sin(3.0 * p) + 0.5;
 
         float amb = 0.2;
         float dif = max(0.0, dot(sn, ld));
