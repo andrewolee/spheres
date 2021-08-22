@@ -4,48 +4,34 @@
 
 precision highp float;
 
-#define REFLECTIONS 3
-#define MAX_STEPS 32 
-#define MAX_DIST 8.0
-#define MIN_DIST 0.001
+#define REFLECTIONS 2
+#define MAX_STEPS 64
+#define MAX_DIST 6.0
+#define MIN_DIST 0.002
 
 uniform vec2 u_window;
 uniform float u_t;
 
-float box(vec3 p, vec3 b) {
-    vec3 q = abs(p) - b;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-}
-
-float boxframe(vec3 p, vec3 b, float e) {
-    p = abs(p) - b;
-    vec3 q = abs(p + e) - e;
-    return min(min(
-        length(max(vec3(p.x, q.y, q.z), 0.0)) + min(max(p.x, max(q.y, q.z)), 0.0),
-        length(max(vec3(q.x, p.y, q.z), 0.0)) + min(max(q.x, max(p.y, q.z)), 0.0)),
-        length(max(vec3(q.x, q.y, p.z), 0.0)) + min(max(q.x, max(q.y, p.z)), 0.0));
-}
-
 float sphere(vec3 p, vec3 c, float r) {
-    float d = sin(10.0 * p.x) * 0.1;
     return length(p - c) - r;
 }
 
 float map(vec3 p) {
     p = fract(p) - 0.5;
-    //return boxframe(p, vec3(0.2), 0.02);
     return sphere(p, vec3(0.0), 0.2);
+    p = abs(p);
+    return max(p.x, max(p.y, p.z)) - 0.25 + dot(p, p) * 0.5;
 }
 
 vec3 normal(vec3 p) {
     const vec2 e = vec2(MIN_DIST, 0.0);
 
-    vec3 normal;
-    normal.x = map(p + e.xyy) - map(p - e.xyy);
-    normal.y = map(p + e.yxy) - map(p - e.yxy);
-    normal.z = map(p + e.yyx) - map(p - e.yyx);
+    vec3 sn;
+    sn.x = map(p + e.xyy) - map(p - e.xyy);
+    sn.y = map(p + e.yxy) - map(p - e.yxy);
+    sn.z = map(p + e.yyx) - map(p - e.yyx);
 
-    return normalize(normal);
+    return normalize(sn);
 }
 
 float raymarch(vec3 ro, vec3 rd) {
@@ -55,8 +41,8 @@ float raymarch(vec3 ro, vec3 rd) {
         if (d < MIN_DIST) {
             return t;
         }
-        if (d > MAX_DIST) break;
-        t += d;
+        if (t > MAX_DIST) break;
+        t += d * 0.8; // the 0.8 factor for more accuracy. Needed for more complex shapes
     }
     return 0.0;
 }
@@ -90,7 +76,7 @@ vec3 render(vec3 ro, vec3 rd, vec3 lp) {
 void main() {
     vec2 uv = (-u_window + 2.0 * gl_FragCoord.xy) / u_window.y;
 
-    vec3 rd = normalize(vec3(uv, 3.0));
+    vec3 rd = normalize(vec3(uv, 2.0));
     vec3 ro = vec3(0.0, 0.0, u_t);
     vec3 lp = ro + vec3(0, 1, -0.5);
 
